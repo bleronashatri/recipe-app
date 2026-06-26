@@ -59,7 +59,8 @@ test('can edit a recipe', async ({ page }) => {
   const card = page.locator(`.recipe-card:has-text("${originalTitle}")`);
   await card.locator('button:has-text("Edit")').click();
 
-  // Formuläret ska vara ifyllt — ändra titeln
+  // Vänta tills formuläret är i redigeringsläge innan titeln ändras
+  await expect(page.locator('#submit-btn')).toHaveText('Spara');
   await page.fill('#title', updatedTitle);
   await page.click('#submit-btn');
 
