@@ -64,6 +64,6 @@ test('can edit a recipe', async ({ page }) => {
   await page.fill('#title', updatedTitle);
   await page.click('#submit-btn');
 
-  await expect(page.locator(`text=${updatedTitle}`)).toBeVisible();
-  await expect(page.locator(`text=${originalTitle}`)).not.toBeVisible();
+  await expect(page.getByText(updatedTitle, { exact: true })).toBeVisible();
+  await expect(page.getByText(originalTitle, { exact: true })).not.toBeVisible();
 });
