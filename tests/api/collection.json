@@ -1,0 +1,186 @@
+{
+  "info": {
+    "name": "Recipe API Tests",
+    "_postman_id": "recipe-api-tests-v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "createdId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "GET all recipes",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Response is an array', () => {",
+              "  pm.expect(pm.response.json()).to.be.an('array');",
+              "});",
+              "pm.test('Array contains at least one recipe', () => {",
+              "  pm.expect(pm.response.json().length).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/recipes"
+      }
+    },
+    {
+      "name": "GET single recipe",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Recipe has required fields', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('id');",
+              "  pm.expect(body).to.have.property('title');",
+              "  pm.expect(body).to.have.property('description');",
+              "  pm.expect(body).to.have.property('ingredients');",
+              "  pm.expect(body).to.have.property('servings');",
+              "  pm.expect(body).to.have.property('cookTime');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/recipes/1"
+      }
+    },
+    {
+      "name": "GET non-existent recipe returns 404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+              "pm.test('Error message is present', () => {",
+              "  pm.expect(pm.response.json()).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/recipes/99999"
+      }
+    },
+    {
+      "name": "POST create recipe",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "pm.test('Created recipe has an id', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.id).to.be.a('number');",
+              "  pm.collectionVariables.set('createdId', body.id);",
+              "});",
+              "pm.test('Title matches sent data', () => {",
+              "  pm.expect(pm.response.json().title).to.equal('API Test Recipe');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\":\"API Test Recipe\",\"description\":\"Skapad av Newman\",\"ingredients\":\"mjöl, vatten, salt\",\"servings\":2,\"cookTime\":15}"
+        },
+        "url": "{{baseUrl}}/api/recipes"
+      }
+    },
+    {
+      "name": "POST missing fields returns 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+              "pm.test('Error message present', () => {",
+              "  pm.expect(pm.response.json()).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\":\"Ofullständigt recept\"}"
+        },
+        "url": "{{baseUrl}}/api/recipes"
+      }
+    },
+    {
+      "name": "PUT update recipe",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Servings was updated', () => {",
+              "  pm.expect(pm.response.json().servings).to.equal(8);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\":\"Chicken Tikka Masala\",\"description\":\"Krämig indisk curry\",\"ingredients\":\"kyckling, tomater, grädde\",\"servings\":8,\"cookTime\":45}"
+        },
+        "url": "{{baseUrl}}/api/recipes/2"
+      }
+    },
+    {
+      "name": "DELETE recipe",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/recipes/{{createdId}}"
+      }
+    }
+  ]
+}

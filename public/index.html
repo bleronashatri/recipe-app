@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recepthanterare</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 1rem 1.5rem; background: #f5f5f5; color: #222; }
+    h1 { margin-bottom: 1.5rem; }
+    h2 { margin-top: 0; }
+    .error { background: #fde8e8; border: 1px solid #e53e3e; color: #c53030; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+    form { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 2rem; }
+    .form-row { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.75rem; }
+    label { font-size: 0.875rem; font-weight: 600; }
+    input, textarea { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
+    textarea { resize: vertical; min-height: 60px; }
+    .form-row-inline { display: flex; gap: 1rem; }
+    .form-row-inline .form-row { flex: 1; }
+    .btn { padding: 0.5rem 1.25rem; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+    .btn-primary { background: #3182ce; color: #fff; }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-secondary { background: #e2e8f0; color: #333; }
+    .btn-secondary:hover { background: #cbd5e0; }
+    .btn-danger { background: #e53e3e; color: #fff; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-edit { background: #d69e2e; color: #fff; }
+    .btn-edit:hover { background: #b7791f; }
+    .form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    #recipe-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .recipe-card { background: #fff; border-radius: 8px; padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); display: flex; flex-direction: column; gap: 0.4rem; }
+    .recipe-card h3 { margin: 0 0 0.25rem; font-size: 1.1rem; }
+    .recipe-card p { margin: 0; font-size: 0.875rem; color: #555; }
+    .recipe-card .meta { font-size: 0.8rem; color: #888; }
+    .card-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <h1>Recepthanterare</h1>
+
+  <div id="error-message" class="error" style="display:none;"></div>
+
+  <form id="recipe-form">
+    <h2 id="form-heading">Lägg till recept</h2>
+    <input type="hidden" id="edit-id" value="" />
+
+    <div class="form-row">
+      <label for="title">Titel</label>
+      <input type="text" id="title" placeholder="t.ex. Pasta Carbonara" required />
+    </div>
+
+    <div class="form-row">
+      <label for="description">Beskrivning</label>
+      <textarea id="description" placeholder="Kort beskrivning av rätten" required></textarea>
+    </div>
+
+    <div class="form-row">
+      <label for="ingredients">Ingredienser</label>
+      <input type="text" id="ingredients" placeholder="t.ex. pasta, ägg, bacon" required />
+    </div>
+
+    <div class="form-row-inline">
+      <div class="form-row">
+        <label for="servings">Portioner</label>
+        <input type="number" id="servings" min="1" placeholder="4" required />
+      </div>
+      <div class="form-row">
+        <label for="cookTime">Tid (minuter)</label>
+        <input type="number" id="cookTime" min="1" placeholder="30" required />
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" id="submit-btn" class="btn btn-primary">Lägg till</button>
+      <button type="button" id="cancel-btn" class="btn btn-secondary" style="display:none;">Avbryt</button>
+    </div>
+  </form>
+
+  <h2>Recept</h2>
+  <div id="recipe-list"></div>
+
+  <script>
+    const API = '/api/recipes';
+
+    function showError(msg) {
+      const el = document.getElementById('error-message');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(String(str)));
+      return div.innerHTML;
+    }
+
+    async function loadRecipes() {
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error('Kunde inte hämta recept');
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function renderRecipes(recipes) {
+      const list = document.getElementById('recipe-list');
+      if (recipes.length === 0) {
+        list.innerHTML = '<p>Inga recept ännu. Lägg till ett ovan!</p>';
+        return;
+      }
+      list.innerHTML = recipes.map((r) => `
+        <div class="recipe-card" data-id="${r.id}">
+          <h3>${escapeHtml(r.title)}</h3>
+          <p>${escapeHtml(r.description)}</p>
+          <p><strong>Ingredienser:</strong> ${escapeHtml(r.ingredients)}</p>
+          <p class="meta">${r.servings} portioner &bull; ${r.cookTime} min</p>
+          <div class="card-actions">
+            <button class="btn btn-edit edit-btn" data-id="${r.id}">Edit</button>
+            <button class="btn btn-danger delete-btn" data-id="${r.id}">Delete</button>
+          </div>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.edit-btn').forEach((btn) =>
+        btn.addEventListener('click', () => startEdit(btn.dataset.id))
+      );
+      list.querySelectorAll('.delete-btn').forEach((btn) =>
+        btn.addEventListener('click', () => deleteRecipe(btn.dataset.id))
+      );
+    }
+
+    async function startEdit(id) {
+      try {
+        const res = await fetch(`${API}/${id}`);
+        if (!res.ok) throw new Error('Kunde inte hämta recept');
+        const r = await res.json();
+        document.getElementById('edit-id').value = r.id;
+        document.getElementById('title').value = r.title;
+        document.getElementById('description').value = r.description;
+        document.getElementById('ingredients').value = r.ingredients;
+        document.getElementById('servings').value = r.servings;
+        document.getElementById('cookTime').value = r.cookTime;
+        document.getElementById('form-heading').textContent = 'Redigera recept';
+        document.getElementById('submit-btn').textContent = 'Spara';
+        document.getElementById('cancel-btn').style.display = 'inline';
+        document.getElementById('title').focus();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    async function deleteRecipe(id) {
+      try {
+        const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort recept');
+        loadRecipes();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('recipe-form').reset();
+      document.getElementById('edit-id').value = '';
+      document.getElementById('form-heading').textContent = 'Lägg till recept';
+      document.getElementById('submit-btn').textContent = 'Lägg till';
+      document.getElementById('cancel-btn').style.display = 'none';
+    }
+
+    document.getElementById('cancel-btn').addEventListener('click', resetForm);
+
+    document.getElementById('recipe-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('edit-id').value;
+      const data = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        ingredients: document.getElementById('ingredients').value,
+        servings: Number(document.getElementById('servings').value),
+        cookTime: Number(document.getElementById('cookTime').value),
+      };
+
+      try {
+        let res;
+        if (editId) {
+          res = await fetch(`${API}/${editId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+        } else {
+          res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+        }
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Något gick fel');
+        }
+
+        resetForm();
+        loadRecipes();
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+
+    loadRecipes();
+  </script>
+</body>
+</html>
